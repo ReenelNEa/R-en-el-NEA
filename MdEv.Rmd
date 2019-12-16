@@ -1,0 +1,96 @@
+---
+title: "Estadística Multivariante Aplicada"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+## Presentación 
+
+Vamos a presentar los resultados de un trabajo realizado en el marco del Proyecto,
+**ESTUDIOS FÍSICO-QUÍMICOS, MORFOLÓGICOS Y NUTRICIONALES DE MATERIAS PRIMAS Y PRODUCTOS TERMINADOS Y OPTIMIZACIÓN DE SUS PROCESOS -FASE II-.**
+Bajo la direccion de Marcos Gabriel Maiocchi (Ingeniero Químico - Doctor en Ciencias Químicas)
+
+Parte de este trabajo se publicó en un documento titulado:
+_Análisis multivariante aplicado al estudio de las propiedades culinarias de arroz (Oryza sativa L.) largo fino._
+Este articulo fue publicado en la Revista de Ciencia y Tecnología de la Facultad de Ciencias Exactas, Químicas y Naturales. Universidad Nacional de Misiones <https://www.fceqyn.unam.edu.ar/recyt/index.php/recyt>
+
+![](rnea.jfif)
+
+```{r,echo=TRUE, results='hide'}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(corrplot)
+library(factoextra)
+library(knitr)
+library(kableExtra)
+library(vegan)
+library(FactoMineR)
+
+setwd("E:/Arroz/Evento R")
+datos <- read_excel("5vsinCFYK.xlsx", sheet=1)
+dato=datos[,-1]
+```
+
+
+
+
+## Matriz de Correlaciones
+Vamos a calcular las correlaciones entre los datos, como requisito previo para poder realizar este análisis 
+
+```{r}
+D=round(cor(dato),2)
+corrplot(D, method = "ellipse", type = "full", tl.cex = 0.7)
+det(cor(D))
+```
+
+## Analisis de la Varianza No Paramétrico PERMANOVA.
+Vamos a utilizar ahora el procedimiento PERMANOVA, que nos permite realizar
+el analisis de la Varianza Multivariante No Paramétrico
+
+
+```{r}
+daMAN <- read_excel("5vsinCFYK.xlsx", sheet=2)
+diMAN=sqrt(daMAN[,-1])
+diMAN<-vegdist(diMAN, method='bray')
+res.man <- adonis2(diMAN ~ Variedad, data = daMAN)
+res.man
+```
+
+## Analisis Cluster
+Vamos a utilizar ahora el procedimiento de Agrupamiento jerarquico, 
+
+
+```{r}
+boxplot(dato, labelsize=1)
+rownames(dato)<-c("Gurí", "IRGA417", "IRGA424", "PAC101", "PAC102", "PAC103", "Puita", "Rocio", "Tranquilo")
+daS <- scale(dato)
+distdas <- dist( daS, method = "euclidean" )
+
+res.hc <- hclust(distdas, method = "average")
+cor(cophenetic(res.hc),distdas)
+fviz_dend(res.hc, cex = 0.8, k = 3, color_labels_by_k = T, rect = TRUE, k_colors = c("hotpink", "orange", "blue"), rect_lty = 2) +
+            labs(title = "Agrupamiento Jerárquico",
+            subtitle = "Distancia euclídea, Vinculación Promedio, K=3")
+```
+
+## Analisis de Componentes Principales
+Vamos a realizar ahora el analisis de Componentes Principales. 
+Primeramente se calculan las componentes. Luego mostramos los valores propios y los porcentajes de als varianzas, y la correlacion de las variables con estos componentes, elegimos la cantidad de factores, y por último graficamos 
+
+
+```{r}
+
+pcaRes <- PCA(X = daS, graph = FALSE)
+pcaRes$eig
+pcaRes$var$coord
+fviz_screeplot(pcaRes, addlabels = TRUE, ylim = c(0, 60), main="Grafica de Variancias de los Componentes", ylab="Porcentaje", xlab="Componentes")
+fviz_pca_ind(pcaRes, axes = c(1, 2), labelsize = 3, col.ind = "blue")
+fviz_pca_var(pcaRes, axes = c(1, 2), labelsize = 4, col.var = "brown", col.circle = "gray")
+
+fviz_pca_biplot(pcaRes, axes = c(1, 2), labelsize = 4, pointsize = 2, 
+                col.ind = "blue", col.var = "brown")
+
+```
+
+
